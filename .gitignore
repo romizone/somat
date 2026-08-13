@@ -13,3 +13,6 @@ tsconfig.tsbuildinfo
 
 # Disalin otomatis oleh scripts/copy-pdf-worker.mjs saat dev/build.
 public/pdf.worker.min.mjs
+
+# Kredensial deploy lokal (Vercel/GoDaddy), jangan pernah di-commit.
+.env.deploy
