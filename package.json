@@ -1,0 +1,45 @@
+{
+  "name": "somat",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm run prepare-assets && next dev",
+    "prepare-assets": "node scripts/copy-pdf-worker.mjs",
+    "build": "npm run prepare-assets && next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "docx": "^9.5.1",
+    "highlight.js": "^11.11.1",
+    "jszip": "^3.10.1",
+    "katex": "^0.16.28",
+    "lucide-react": "^0.564.0",
+    "mammoth": "^1.11.0",
+    "next": "16.1.6",
+    "pdf-lib": "^1.17.1",
+    "pdf-parse": "^2.4.5",
+    "pdfjs-dist": "^5.4.149",
+    "pptxgenjs": "^4.0.1",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-markdown": "^10.1.0",
+    "rehype-highlight": "^7.0.2",
+    "rehype-katex": "^7.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0",
+    "tesseract.js": "^6.0.1",
+    "word-extractor": "^1.0.4",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
