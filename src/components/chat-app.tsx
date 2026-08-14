@@ -49,6 +49,8 @@ export default function ChatApp() {
   );
 
   useEffect(() => {
+    // Kelas tema dipasang di <html> sebelum hidrasi; hanya bisa dibaca setelah mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTheme(document.documentElement.classList.contains("dark") ? "dark" : "light");
     void loadConversations().then((stored) => {
       setConversations(stored);
@@ -130,6 +132,8 @@ export default function ChatApp() {
   };
 
   const send = async (text: string, attachments: Attachment[]) => {
+    // Hanya dipanggil dari event handler, bukan saat render.
+    // eslint-disable-next-line react-hooks/purity
     const now = Date.now();
     const userMessage: ChatMessage = {
       id: newId(),
