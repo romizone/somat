@@ -201,18 +201,16 @@ export async function buildPdf(
       }
 
       case "list": {
-        let counter = 0;
         for (const item of block.items) {
-          const indent = MARGIN + 16 + item.level * 14;
-          if (item.level === 0) counter += 1;
-          const marker = block.ordered ? `${counter}.` : "•";
+          const indent = MARGIN + 12 + item.level * 14;
+          const marker = block.ordered ? "-" : "•";
           const lines = layout(
             tokensOf(item.runs, BODY_SIZE, BODY),
             CONTENT_WIDTH - (indent - MARGIN) - 12,
           );
           ensure(BODY_SIZE * LINE_RATIO);
           page.drawText(marker, {
-            x: indent - 16,
+            x: indent - 12,
             y: y - BODY_SIZE,
             size: BODY_SIZE,
             font: regular,

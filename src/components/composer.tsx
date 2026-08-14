@@ -29,8 +29,7 @@ export function Composer({ busy, onSend, onStop }: Props) {
   useEffect(() => {
     const element = textarea.current;
     if (!element) return;
-    // Kecilkan dulu supaya scrollHeight mengukur isi, bukan tinggi saat ini.
-    element.style.height = "0px";
+    element.style.height = "auto";
     element.style.height = `${Math.min(element.scrollHeight, 220)}px`;
   }, [text]);
 
@@ -169,7 +168,7 @@ export function Composer({ busy, onSend, onStop }: Props) {
           onKeyDown={onKeyDown}
           onPaste={onPaste}
           rows={1}
-          placeholder="Tulis pesan…"
+          placeholder="Tanya apa saja, atau minta dibuatkan gambar dan dokumen…"
           className="max-h-55 flex-1 resize-none bg-transparent py-3 text-[0.95rem] leading-relaxed text-text outline-none placeholder:text-muted"
         />
 

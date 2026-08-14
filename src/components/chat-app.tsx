@@ -1,30 +1,17 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, Menu, PenLine } from "lucide-react";
 import { Composer } from "@/components/composer";
 import { MessageItem } from "@/components/message-item";
 import { Sidebar } from "@/components/sidebar";
 import { readStream } from "@/lib/client/stream";
 import {
-  getServerTheme,
-  getTheme,
-  setTheme,
-  subscribeTheme,
-} from "@/lib/client/theme";
-import {
   loadConversations,
   removeConversation,
   saveConversation,
 } from "@/lib/client/storage";
-import type { Attachment, ChatMessage, Conversation } from "@/lib/types";
+import type { Attachment, ChatMessage, Conversation, Progress } from "@/lib/types";
 
 const SUGGESTIONS = [
   "Ringkas isi dokumen yang saya unggah jadi lima poin penting",
@@ -37,11 +24,6 @@ function newId(): string {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 }
 
-/** Dibungkus di luar komponen: pembacaan jam bukan operasi yang murni saat render. */
-function timestamp(): number {
-  return Date.now();
-}
-
 function titleFrom(text: string, attachments: Attachment[]): string {
   const base = text.trim() || attachments[0]?.name || "Percakapan baru";
   return base.length > 48 ? `${base.slice(0, 48)}…` : base;
@@ -52,8 +34,10 @@ export default function ChatApp() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [progress, setProgress] = useState<Progress | null>(null);
+  const [elapsedSec, setElapsedSec] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const theme = useSyncExternalStore(subscribeTheme, getTheme, getServerTheme);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
 
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -65,13 +49,23 @@ export default function ChatApp() {
   );
 
   useEffect(() => {
+    setTheme(document.documentElement.classList.contains("dark") ? "dark" : "light");
     void loadConversations().then((stored) => {
       setConversations(stored);
       if (stored.length) setActiveId(stored[0]!.id);
     });
   }, []);
 
-  const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
+  const toggleTheme = () => {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    document.documentElement.classList.toggle("dark", next === "dark");
+    try {
+      localStorage.setItem("somat.theme", next);
+    } catch {
+      // Penyimpanan lokal diblokir; tema tetap berlaku untuk sesi ini.
+    }
+  };
 
   /** Jaga tampilan tetap menempel ke bawah selama pengguna tidak menggulir naik. */
   const onScroll = () => {
@@ -88,6 +82,17 @@ export default function ChatApp() {
     if (element) element.scrollTop = element.scrollHeight;
   }, [active?.messages, status]);
 
+  // Detik berjalan berdetak lokal tiap 1 detik; event progress dari server
+  // (tiap ~1,5 detik) mengoreksi nilainya supaya tidak melenceng.
+  const hasProgress = progress !== null;
+  useEffect(() => {
+    if (!hasProgress) return;
+    const id = window.setInterval(() => {
+      setElapsedSec((s) => s + 1);
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [hasProgress]);
+
   const patchConversation = useCallback(
     (id: string, update: (conversation: Conversation) => Conversation) => {
       setConversations((current) =>
@@ -103,7 +108,7 @@ export default function ChatApp() {
     (conversationId: string, messageId: string, patch: Partial<ChatMessage>) => {
       patchConversation(conversationId, (conversation) => ({
         ...conversation,
-        updatedAt: timestamp(),
+        updatedAt: Date.now(),
         messages: conversation.messages.map((message) =>
           message.id === messageId ? { ...message, ...patch } : message,
         ),
@@ -125,7 +130,7 @@ export default function ChatApp() {
   };
 
   const send = async (text: string, attachments: Attachment[]) => {
-    const now = timestamp();
+    const now = Date.now();
     const userMessage: ChatMessage = {
       id: newId(),
       role: "user",
@@ -165,6 +170,7 @@ export default function ChatApp() {
     setActiveId(started.id);
     setBusy(true);
     setStatus(null);
+    setProgress(null);
     pinnedRef.current = true;
 
     const controller = new AbortController();
@@ -213,9 +219,14 @@ export default function ChatApp() {
             case "status":
               setStatus(event.text);
               break;
+            case "progress":
+              setProgress(event.progress);
+              setElapsedSec(event.progress.elapsedSec);
+              break;
             case "image":
               images.push(event.image);
               setStatus(null);
+              setProgress(null);
               patchMessage(started.id, assistantMessage.id, {
                 content: buffer,
                 images: [...images],
@@ -224,6 +235,7 @@ export default function ChatApp() {
             case "document":
               docs.push(event.doc);
               setStatus(null);
+              setProgress(null);
               patchMessage(started.id, assistantMessage.id, {
                 content: buffer,
                 docs: [...docs],
@@ -248,6 +260,7 @@ export default function ChatApp() {
       flush();
       setBusy(false);
       setStatus(null);
+      setProgress(null);
       abortRef.current = null;
 
       const finished: ChatMessage = {
@@ -261,7 +274,7 @@ export default function ChatApp() {
       patchConversation(started.id, (conversation) => {
         const updated: Conversation = {
           ...conversation,
-          updatedAt: timestamp(),
+          updatedAt: Date.now(),
           messages: conversation.messages.map((message) =>
             message.id === assistantMessage.id ? finished : message,
           ),
@@ -277,6 +290,7 @@ export default function ChatApp() {
     abortRef.current = null;
     setBusy(false);
     setStatus(null);
+    setProgress(null);
   };
 
   const messages = active?.messages ?? [];
@@ -363,10 +377,33 @@ export default function ChatApp() {
             )}
 
             {busy && status && (
-              <p className="flex items-center gap-2 text-sm text-muted">
-                <Loader2 size={14} className="animate-spin text-primary" />
-                {status}
-              </p>
+              <div className="flex flex-col gap-2">
+                <p className="flex items-center gap-2 text-sm text-muted">
+                  <Loader2 size={14} className="animate-spin text-primary" />
+                  {status}
+                  {progress && (
+                    <span className="font-medium text-text">
+                      {progress.percent}%
+                    </span>
+                  )}
+                </p>
+                {progress && (
+                  <div className="flex max-w-sm items-center gap-3">
+                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-tint">
+                      <div
+                        className="h-full rounded-full bg-primary transition-all duration-700 ease-out"
+                        style={{ width: `${progress.percent}%` }}
+                      />
+                    </div>
+                    <span className="shrink-0 text-xs tabular-nums text-muted">
+                      {elapsedSec} dtk
+                      {progress.etaSec > 0
+                        ? ` · ±${progress.etaSec} dtk lagi`
+                        : " · hampir selesai…"}
+                    </span>
+                  </div>
+                )}
+              </div>
             )}
 
             {busy && !status && messages[messages.length - 1]?.content === "" && (

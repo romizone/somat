@@ -172,6 +172,25 @@ export async function POST(req: Request) {
             : "medium";
 
           send({ type: "status", text: "Menyiapkan gambar…" });
+          // Penyedia tidak melaporkan kemajuan, jadi persen diperkirakan dari
+          // waktu berjalan terhadap durasi tipikal (~45 detik terukur).
+          const EXPECTED_SEC = 45;
+          const startedAt = Date.now();
+          const progressTimer = setInterval(() => {
+            const elapsedSec = Math.round((Date.now() - startedAt) / 1000);
+            const percent = Math.min(
+              95,
+              Math.round(100 * (1 - Math.exp(-elapsedSec / (EXPECTED_SEC / 2)))),
+            );
+            send({
+              type: "progress",
+              progress: {
+                percent,
+                elapsedSec,
+                etaSec: Math.max(0, EXPECTED_SEC - elapsedSec),
+              },
+            });
+          }, 1500);
           try {
             const result = await generateImage({
               prompt,
@@ -179,12 +198,19 @@ export async function POST(req: Request) {
               quality: kualitas,
               signal: req.signal,
             });
+            clearInterval(progressTimer);
+            const elapsedSec = Math.round((Date.now() - startedAt) / 1000);
+            send({
+              type: "progress",
+              progress: { percent: 100, elapsedSec, etaSec: 0 },
+            });
             send({
               type: "image",
               image: { id: newId(), prompt, dataUrl: result.dataUrl },
             });
             return "Berhasil: gambar sudah dibuat dan sedang ditampilkan ke pengguna lengkap dengan tombol unduh.";
           } catch (err) {
+            clearInterval(progressTimer);
             const message =
               err instanceof UpstreamError
                 ? err.message

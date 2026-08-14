@@ -73,17 +73,9 @@ function toSlides(title: string, blocks: Block[]): Slide[] {
         break;
       }
 
-      case "quote": {
-        // Kicker yang ditulis setelah tabel tetap menempel di slide tabelnya,
-        // bukan bikin slide baru yang isinya cuma satu kalimat.
-        const previous = slides[slides.length - 1];
-        if (!current.bullets.length && !current.kicker && previous && !previous.kicker) {
-          previous.kicker = block.text;
-        } else {
-          current.kicker = block.text;
-        }
+      case "quote":
+        current.kicker = block.text;
         break;
-      }
 
       case "list":
         for (const item of block.items) addBullet(item.text, Math.min(item.level, 2));

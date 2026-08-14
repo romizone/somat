@@ -74,17 +74,15 @@ function xmlText(xml: string, breakOn: RegExp): string {
 }
 
 async function fromPdf(buffer: Buffer): Promise<Extracted> {
-  const { PDFParse } = await import("pdf-parse");
-  const parser = new PDFParse({ data: new Uint8Array(buffer) });
-
-  let text = "";
-  try {
-    const result = await parser.getText();
-    text = (result?.text ?? "").trim();
-  } finally {
-    await parser.destroy().catch(() => {});
-  }
-
+  const mod = (await import("pdf-parse")) as unknown as Record<string, unknown>;
+  const candidate =
+    (mod.pdf as unknown) ??
+    ((mod.default as Record<string, unknown> | undefined)?.pdf as unknown) ??
+    (mod.default as unknown) ??
+    mod;
+  const parse = candidate as (input: Buffer) => Promise<{ text?: string }>;
+  const result = await parse(buffer);
+  const text = (result?.text ?? "").trim();
   if (!text) {
     return {
       text: "",

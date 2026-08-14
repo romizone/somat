@@ -72,23 +72,21 @@ export async function buildDocx(
         );
         break;
 
-      case "list": {
-        let counter = 0;
+      case "list":
         for (const item of block.items) {
-          if (item.level === 0) counter += 1;
           children.push(
             new Paragraph({
               spacing: { after: 60, line: 280 },
               indent: { left: 360 + item.level * 360 },
               bullet: block.ordered ? undefined : { level: item.level },
+              numbering: undefined,
               children: block.ordered
-                ? [new TextRun({ text: `${counter}. ` }), ...runsOf(item.runs)]
+                ? [new TextRun({ text: "• " }), ...runsOf(item.runs)]
                 : runsOf(item.runs),
             }),
           );
         }
         break;
-      }
 
       case "quote":
         children.push(

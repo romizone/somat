@@ -42,10 +42,18 @@ export type Conversation = {
   messages: ChatMessage[];
 };
 
+/** Kemajuan pekerjaan panjang (mis. pembuatan gambar), persen berupa perkiraan. */
+export type Progress = {
+  percent: number;
+  elapsedSec: number;
+  etaSec: number;
+};
+
 /** Kejadian yang dialirkan server ke browser selama satu giliran. */
 export type StreamEvent =
   | { type: "delta"; text: string }
   | { type: "status"; text: string }
+  | { type: "progress"; progress: Progress }
   | { type: "image"; image: GeneratedImage }
   | { type: "document"; doc: GeneratedDoc }
   | { type: "error"; message: string }
