@@ -16,3 +16,7 @@ public/pdf.worker.min.mjs
 
 # Kredensial deploy lokal (Vercel/GoDaddy), jangan pernah di-commit.
 .env.deploy
+
+# Salinan konflik dari sinkronisasi berkas (iCloud/Finder).
+* 2.*
+* 2/

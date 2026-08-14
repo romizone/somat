@@ -24,7 +24,12 @@ import {
   removeConversation,
   saveConversation,
 } from "@/lib/client/storage";
-import type { Attachment, ChatMessage, Conversation } from "@/lib/types";
+import type {
+  Attachment,
+  ChatMessage,
+  Conversation,
+  Progress,
+} from "@/lib/types";
 
 const SUGGESTIONS = [
   "Ringkas isi dokumen yang saya unggah jadi lima poin penting",
@@ -52,6 +57,7 @@ export default function ChatApp() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [progress, setProgress] = useState<Progress | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const theme = useSyncExternalStore(subscribeTheme, getTheme, getServerTheme);
 
@@ -165,6 +171,7 @@ export default function ChatApp() {
     setActiveId(started.id);
     setBusy(true);
     setStatus(null);
+    setProgress(null);
     pinnedRef.current = true;
 
     const controller = new AbortController();
@@ -213,9 +220,13 @@ export default function ChatApp() {
             case "status":
               setStatus(event.text);
               break;
+            case "progress":
+              setProgress(event.progress);
+              break;
             case "image":
               images.push(event.image);
               setStatus(null);
+              setProgress(null);
               patchMessage(started.id, assistantMessage.id, {
                 content: buffer,
                 images: [...images],
@@ -224,6 +235,7 @@ export default function ChatApp() {
             case "document":
               docs.push(event.doc);
               setStatus(null);
+              setProgress(null);
               patchMessage(started.id, assistantMessage.id, {
                 content: buffer,
                 docs: [...docs],
@@ -248,6 +260,7 @@ export default function ChatApp() {
       flush();
       setBusy(false);
       setStatus(null);
+      setProgress(null);
       abortRef.current = null;
 
       const finished: ChatMessage = {
@@ -277,6 +290,7 @@ export default function ChatApp() {
     abortRef.current = null;
     setBusy(false);
     setStatus(null);
+    setProgress(null);
   };
 
   const messages = active?.messages ?? [];
@@ -363,10 +377,32 @@ export default function ChatApp() {
             )}
 
             {busy && status && (
-              <p className="flex items-center gap-2 text-sm text-muted">
-                <Loader2 size={14} className="animate-spin text-primary" />
-                {status}
-              </p>
+              <div className="flex flex-col gap-2">
+                <p className="flex items-center gap-2 text-sm text-muted">
+                  <Loader2 size={14} className="animate-spin text-primary" />
+                  {status}
+                  {progress && (
+                    <span className="tabular-nums text-xs">
+                      {progress.percent}% · {progress.elapsedSec} dtk
+                    </span>
+                  )}
+                </p>
+                {progress && (
+                  <div
+                    role="progressbar"
+                    aria-valuenow={progress.percent}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label={status}
+                    className="h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-tint"
+                  >
+                    <div
+                      className="h-full rounded-full bg-primary transition-[width] duration-500 ease-out"
+                      style={{ width: `${progress.percent}%` }}
+                    />
+                  </div>
+                )}
+              </div>
             )}
 
             {busy && !status && messages[messages.length - 1]?.content === "" && (

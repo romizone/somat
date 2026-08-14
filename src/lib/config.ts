@@ -20,7 +20,8 @@ export const OPENROUTER_BASE_URL =
  */
 export const TEXT_MODEL = process.env.TEXT_MODEL ?? "deepseek/deepseek-v4-flash";
 export const VISION_MODEL = process.env.VISION_MODEL ?? "google/gemini-3.5-flash-lite";
-export const IMAGE_MODEL = process.env.IMAGE_MODEL ?? "openai/gpt-image-2";
+export const IMAGE_MODEL =
+  process.env.IMAGE_MODEL ?? "google/gemini-2.5-flash-image";
 
 /** Atribusi aplikasi di dashboard OpenRouter. */
 export const SITE_URL = process.env.SITE_URL ?? "https://somat.rominur.com";

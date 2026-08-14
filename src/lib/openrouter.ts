@@ -137,20 +137,32 @@ export type ImageOptions = {
 
 export type ImageResult = { dataUrl: string; cost?: number };
 
+/**
+ * Tidak semua model punya tombol kualitas — model Google, misalnya, hanya
+ * menerima rasio. Kirim parameter yang memang didukung supaya tidak ditolak.
+ */
+function supportsQuality(model: string): boolean {
+  return model.startsWith("openai/");
+}
+
 /** Buat satu gambar lewat Image API OpenRouter. */
 export async function generateImage(
   opts: ImageOptions,
 ): Promise<ImageResult> {
+  const payload: Record<string, unknown> = {
+    model: IMAGE_MODEL,
+    prompt: opts.prompt,
+    n: 1,
+    aspect_ratio: opts.aspectRatio ?? "1:1",
+  };
+  if (supportsQuality(IMAGE_MODEL)) {
+    payload.quality = opts.quality ?? "medium";
+  }
+
   const res = await fetch(`${OPENROUTER_BASE_URL}/images`, {
     method: "POST",
     headers: headers(),
-    body: JSON.stringify({
-      model: IMAGE_MODEL,
-      prompt: opts.prompt,
-      n: 1,
-      aspect_ratio: opts.aspectRatio ?? "1:1",
-      quality: opts.quality ?? "medium",
-    }),
+    body: JSON.stringify(payload),
     signal: opts.signal,
   });
 
