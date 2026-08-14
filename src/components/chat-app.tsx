@@ -58,6 +58,7 @@ export default function ChatApp() {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [progress, setProgress] = useState<Progress | null>(null);
+  const [elapsedSec, setElapsedSec] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const theme = useSyncExternalStore(subscribeTheme, getTheme, getServerTheme);
 
@@ -93,6 +94,18 @@ export default function ChatApp() {
     const element = scrollRef.current;
     if (element) element.scrollTop = element.scrollHeight;
   }, [active?.messages, status]);
+
+  // Detik berjalan berdetak sendiri tiap satu detik supaya angkanya tidak
+  // tersendat; kabar dari server dipakai untuk mengoreksi agar tidak melenceng.
+  const hasProgress = progress !== null;
+  useEffect(() => {
+    if (!hasProgress) return;
+    const ticker = window.setInterval(
+      () => setElapsedSec((value) => value + 1),
+      1000,
+    );
+    return () => window.clearInterval(ticker);
+  }, [hasProgress]);
 
   const patchConversation = useCallback(
     (id: string, update: (conversation: Conversation) => Conversation) => {
@@ -222,6 +235,7 @@ export default function ChatApp() {
               break;
             case "progress":
               setProgress(event.progress);
+              setElapsedSec(event.progress.elapsedSec);
               break;
             case "image":
               images.push(event.image);
@@ -383,7 +397,7 @@ export default function ChatApp() {
                   {status}
                   {progress && (
                     <span className="tabular-nums text-xs">
-                      {progress.percent}% · {progress.elapsedSec} dtk
+                      {progress.percent}% · {elapsedSec} dtk
                     </span>
                   )}
                 </p>
