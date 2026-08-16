@@ -18,8 +18,8 @@ export const OPENROUTER_BASE_URL =
  * Nama-nama model sengaja hanya ada di sini. Tidak pernah dikirim ke klien,
  * tidak pernah disebut di prompt sistem, dan tidak pernah muncul di pesan error.
  */
-export const TEXT_MODEL = process.env.TEXT_MODEL ?? "deepseek/deepseek-v4-flash";
-export const VISION_MODEL = process.env.VISION_MODEL ?? "google/gemini-3.5-flash-lite";
+export const TEXT_MODEL = process.env.TEXT_MODEL ?? "google/gemini-3.7-flash";
+export const VISION_MODEL = process.env.VISION_MODEL ?? "google/gemini-3.7-flash";
 export const IMAGE_MODEL =
   process.env.IMAGE_MODEL ?? "google/gemini-2.5-flash-image";
 
