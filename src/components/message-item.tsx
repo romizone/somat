@@ -11,6 +11,7 @@ import {
   FileSpreadsheet,
   FileText,
   FileType2,
+  Globe,
   Image as ImageIcon,
   Paperclip,
   Presentation,
@@ -30,6 +31,15 @@ const EXPORT_OPTIONS: Array<{
   { format: "pptx", label: "PowerPoint (.pptx)", Icon: Presentation },
   { format: "pdf", label: "PDF (.pdf)", Icon: FileType2 },
 ];
+
+/** Nama domain saja, supaya asal sumbernya terbaca sekilas. */
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
 
 function titleFrom(markdown: string): string {
   const heading = markdown.match(/^#{1,3}\s+(.+)$/m);
@@ -188,6 +198,34 @@ export function MessageItem({
 
       {message.images?.map((image) => <ImageCard key={image.id} image={image} />)}
       {message.docs?.map((doc) => <DocCard key={doc.id} doc={doc} />)}
+
+      {message.citations && message.citations.length > 0 && (
+        <div className="rounded-xl border border-line bg-tint/40 p-3">
+          <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-primary">
+            <Globe size={13} />
+            Sumber dari web
+          </p>
+          <ol className="flex flex-col gap-1.5">
+            {message.citations.map((citation, index) => (
+              <li key={citation.url} className="flex gap-2 text-xs">
+                <span className="tabular-nums text-muted">{index + 1}.</span>
+                <a
+                  href={citation.url}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="min-w-0 flex-1 truncate text-interactive hover:underline"
+                  title={citation.url}
+                >
+                  {citation.title}
+                  <span className="ml-1.5 text-muted">
+                    {hostOf(citation.url)}
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
 
       {message.error && (
         <p className="flex items-start gap-2 rounded-xl border border-amber-300/60 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">

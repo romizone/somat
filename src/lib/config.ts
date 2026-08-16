@@ -27,7 +27,21 @@ export const IMAGE_MODEL =
 export const SITE_URL = process.env.SITE_URL ?? "https://somat.rominur.com";
 export const SITE_NAME = process.env.SITE_NAME ?? "Somat";
 
+/**
+ * Penelusuran web dijalankan OpenRouter di sisi mereka (server tools), jadi
+ * model bisa mencari sendiri saat butuh informasi terkini. Ada biaya per
+ * pencarian, karena itu jumlah pemakaiannya per giliran dibatasi.
+ */
+export const WEB_SEARCH_ENABLED = process.env.WEB_SEARCH_ENABLED !== "off";
+
 export const LIMITS = {
+  /** Berapa kali model boleh mencari dalam satu giliran percakapan. */
+  webSearchMaxUses: num("WEB_SEARCH_MAX_USES", 3),
+  /** Jumlah hasil per pencarian. */
+  webSearchMaxResults: num("WEB_SEARCH_MAX_RESULTS", 5),
+  /** Batas total hasil lintas pencarian, penjaga ukuran konteks dan biaya. */
+  webSearchMaxTotal: num("WEB_SEARCH_MAX_TOTAL", 12),
+
   /** Panjang maksimum satu pesan pengguna (karakter). */
   maxMessageChars: num("MAX_MESSAGE_CHARS", 24_000),
   /** Total karakter riwayat yang dikirim ke model; sisanya dipangkas dari yang terlama. */

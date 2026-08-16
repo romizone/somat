@@ -14,6 +14,12 @@ export type GeneratedImage = {
   dataUrl: string;
 };
 
+/** Sumber web yang dipakai model untuk menjawab. */
+export type Citation = {
+  url: string;
+  title: string;
+};
+
 export type GeneratedDoc = {
   id: string;
   format: DocFormat;
@@ -30,6 +36,7 @@ export type ChatMessage = {
   attachments?: Attachment[];
   images?: GeneratedImage[];
   docs?: GeneratedDoc[];
+  citations?: Citation[];
   /** Diisi kalau giliran ini berhenti karena kesalahan. */
   error?: string;
 };
@@ -54,6 +61,7 @@ export type StreamEvent =
   | { type: "delta"; text: string }
   | { type: "status"; text: string }
   | { type: "progress"; progress: Progress }
+  | { type: "citations"; citations: Citation[] }
   | { type: "image"; image: GeneratedImage }
   | { type: "document"; doc: GeneratedDoc }
   | { type: "error"; message: string }

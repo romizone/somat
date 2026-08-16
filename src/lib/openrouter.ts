@@ -60,13 +60,31 @@ export type UpstreamMessage = {
   name?: string;
 };
 
-export type ToolDef = {
+export type FunctionToolDef = {
   type: "function";
   function: {
     name: string;
     description: string;
     parameters: Record<string, unknown>;
   };
+};
+
+/**
+ * Alat bawaan OpenRouter yang dijalankan di sisi mereka: model memutuskan
+ * sendiri kapan perlu mencari atau membuka halaman, hasilnya kembali sebagai
+ * kutipan (annotations) tanpa perlu kita eksekusi apa pun.
+ */
+export type ServerToolDef = {
+  type: "openrouter:web_search" | "openrouter:web_fetch";
+  parameters?: Record<string, unknown>;
+};
+
+export type ToolDef = FunctionToolDef | ServerToolDef;
+
+/** Kutipan sumber yang dikirim penyedia bersama jawaban. */
+export type UrlAnnotation = {
+  type?: string;
+  url_citation?: { url?: string; title?: string };
 };
 
 /** Panggil endpoint chat completions dengan streaming SSE. */

@@ -7,11 +7,12 @@ import {
   type ContentPart,
   type ToolCall,
   type UpstreamMessage,
+  type UrlAnnotation,
 } from "@/lib/openrouter";
 import { SYSTEM_PROMPT, VISION_HINT } from "@/lib/prompt";
-import { ASPECT_RATIOS, TOOLS } from "@/lib/tools";
+import { ASPECT_RATIOS, toolsForTurn } from "@/lib/tools";
 import { checkChatQuota, checkImageQuota, clientIp } from "@/lib/ratelimit";
-import type { Attachment, DocFormat, StreamEvent } from "@/lib/types";
+import type { Attachment, Citation, DocFormat, StreamEvent } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -248,11 +249,13 @@ export async function POST(req: Request) {
       };
 
       try {
+        const citations = new Map<string, Citation>();
+
         for (let round = 0; round < MAX_TOOL_ROUNDS; round += 1) {
           const upstream = await streamChat({
             model,
             messages,
-            tools: TOOLS,
+            tools: toolsForTurn(),
             max_tokens: LIMITS.maxOutputTokens,
             temperature: 0.7,
             signal: req.signal,
@@ -267,6 +270,7 @@ export async function POST(req: Request) {
                 choices?: Array<{
                   delta?: {
                     content?: string | null;
+                    annotations?: UrlAnnotation[];
                     tool_calls?: Array<{
                       index?: number;
                       id?: string;
@@ -291,6 +295,22 @@ export async function POST(req: Request) {
             if (piece) {
               text += piece;
               send({ type: "delta", text: piece });
+            }
+
+            // Penelusuran dijalankan OpenRouter; yang kembali ke kita hanya
+            // sumbernya. Kirim setiap ada yang baru supaya langsung tampil.
+            let fresh = false;
+            for (const annotation of choice.delta.annotations ?? []) {
+              const url = annotation.url_citation?.url;
+              if (!url || citations.has(url)) continue;
+              citations.set(url, {
+                url,
+                title: annotation.url_citation?.title?.trim() || url,
+              });
+              fresh = true;
+            }
+            if (fresh) {
+              send({ type: "citations", citations: [...citations.values()] });
             }
 
             for (const partial of choice.delta.tool_calls ?? []) {

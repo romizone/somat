@@ -27,6 +27,7 @@ import {
 import type {
   Attachment,
   ChatMessage,
+  Citation,
   Conversation,
   Progress,
 } from "@/lib/types";
@@ -202,6 +203,7 @@ export default function ChatApp() {
 
     const images: ChatMessage["images"] = [];
     const docs: ChatMessage["docs"] = [];
+    let sources: Citation[] = [];
     let failure: string | null = null;
 
     try {
@@ -236,6 +238,14 @@ export default function ChatApp() {
             case "progress":
               setProgress(event.progress);
               setElapsedSec(event.progress.elapsedSec);
+              break;
+            case "citations":
+              sources = event.citations;
+              setStatus(null);
+              patchMessage(started.id, assistantMessage.id, {
+                content: buffer,
+                citations: sources,
+              });
               break;
             case "image":
               images.push(event.image);
@@ -282,6 +292,7 @@ export default function ChatApp() {
         content: buffer,
         images: images.length ? images : undefined,
         docs: docs.length ? docs : undefined,
+        citations: sources.length ? sources : undefined,
         error: failure ?? undefined,
       };
 

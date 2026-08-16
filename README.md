@@ -24,6 +24,8 @@ Dibuat untuk dijalankan di <https://somat.rominur.com>.
 | Kebutuhan | Yang terjadi |
 | --- | --- |
 | Tanya jawab, menulis, menganalisis | Jawaban mengalir langsung (streaming), lengkap dengan Markdown, tabel, blok kode, dan rumus LaTeX |
+| Pertanyaan soal hal terkini | Model mencari sendiri di web saat perlu, lalu daftar sumbernya tampil di bawah jawaban |
+| Menempelkan tautan | Halamannya dibuka dan isinya dibaca |
 | "Buatkan gambar …" | Gambar dibuat lalu tampil di percakapan dengan tombol unduh |
 | "Buatkan Word/Excel/PowerPoint/PDF …" | Berkas disusun di server, muncul sebagai kartu unduhan |
 | Jawaban apa pun | Tombol **Simpan sebagai** mengubah jawaban jadi .docx / .xlsx / .pptx / .pdf |

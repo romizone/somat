@@ -1,4 +1,5 @@
-import type { ToolDef } from "@/lib/openrouter";
+import { LIMITS, WEB_SEARCH_ENABLED } from "@/lib/config";
+import type { ServerToolDef, ToolDef } from "@/lib/openrouter";
 
 export const ASPECT_RATIOS = [
   "1:1",
@@ -78,3 +79,25 @@ export const TOOLS: ToolDef[] = [
     },
   },
 ];
+
+/**
+ * Alat bawaan OpenRouter: penelusuran web dan pembacaan halaman. Dijalankan
+ * di sisi OpenRouter, jadi tidak ada yang perlu kita eksekusi — hasilnya
+ * langsung dipakai model dan sumbernya kembali sebagai kutipan.
+ */
+export const SERVER_TOOLS: ServerToolDef[] = [
+  {
+    type: "openrouter:web_search",
+    parameters: {
+      max_results: LIMITS.webSearchMaxResults,
+      max_uses: LIMITS.webSearchMaxUses,
+      max_total_results: LIMITS.webSearchMaxTotal,
+    },
+  },
+  { type: "openrouter:web_fetch" },
+];
+
+/** Gabungan alat yang ditawarkan ke model dalam satu giliran. */
+export function toolsForTurn(): ToolDef[] {
+  return WEB_SEARCH_ENABLED ? [...TOOLS, ...SERVER_TOOLS] : TOOLS;
+}
