@@ -49,11 +49,13 @@ export type Conversation = {
   messages: ChatMessage[];
 };
 
-/** Kemajuan pekerjaan panjang (mis. pembuatan gambar), persen berupa perkiraan. */
+/** Kemajuan satu giliran; persen berupa perkiraan dari waktu berjalan. */
 export type Progress = {
   percent: number;
   elapsedSec: number;
   etaSec: number;
+  /** Tahap yang sedang berjalan, mis. "Mencari di web…". */
+  label: string;
 };
 
 /** Kejadian yang dialirkan server ke browser selama satu giliran. */

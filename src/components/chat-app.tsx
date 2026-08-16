@@ -37,6 +37,8 @@ const SUGGESTIONS = [
   "Buatkan gambar suasana pasar pagi di Yogyakarta saat hujan",
   "Susun presentasi strategi penjualan kuartal depan",
   "Buatkan tabel anggaran rumah tangga bulanan dalam Excel",
+  "Carikan harga Bitcoin, Ethereum, Solana, dan Sui terbaru beserta acuannya",
+  "Carikan kurs terbaru USD, dolar Singapura, euro, dan poundsterling ke rupiah",
 ];
 
 function newId(): string {
@@ -204,6 +206,7 @@ export default function ChatApp() {
     const images: ChatMessage["images"] = [];
     const docs: ChatMessage["docs"] = [];
     let sources: Citation[] = [];
+    let barVisible = false;
     let failure: string | null = null;
 
     try {
@@ -231,11 +234,17 @@ export default function ChatApp() {
             case "delta":
               buffer += event.text;
               dirty = true;
+              if (barVisible) {
+                barVisible = false;
+                setProgress(null);
+                setStatus(null);
+              }
               break;
             case "status":
               setStatus(event.text);
               break;
             case "progress":
+              barVisible = true;
               setProgress(event.progress);
               setElapsedSec(event.progress.elapsedSec);
               break;
@@ -401,39 +410,40 @@ export default function ChatApp() {
               ))
             )}
 
-            {busy && status && (
+            {busy && progress && (
               <div className="flex flex-col gap-2">
-                <p className="flex items-center gap-2 text-sm text-muted">
+                <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
                   <Loader2 size={14} className="animate-spin text-primary" />
-                  {status}
-                  {progress && (
-                    <span className="tabular-nums text-xs">
-                      {progress.percent}% · {elapsedSec} dtk
-                    </span>
-                  )}
+                  <span>{progress.label || status || "Menyusun jawaban…"}</span>
+                  <span className="tabular-nums text-xs">
+                    {progress.percent}% · {elapsedSec} dtk
+                    {progress.percent >= 100
+                      ? ""
+                      : progress.etaSec > 0
+                        ? ` · kira-kira ${progress.etaSec} dtk lagi`
+                        : " · hampir selesai"}
+                  </span>
                 </p>
-                {progress && (
+                <div
+                  role="progressbar"
+                  aria-valuenow={progress.percent}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label={progress.label}
+                  className="h-1.5 w-full max-w-sm overflow-hidden rounded-full bg-tint"
+                >
                   <div
-                    role="progressbar"
-                    aria-valuenow={progress.percent}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-label={status}
-                    className="h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-tint"
-                  >
-                    <div
-                      className="h-full rounded-full bg-primary transition-[width] duration-500 ease-out"
-                      style={{ width: `${progress.percent}%` }}
-                    />
-                  </div>
-                )}
+                    className="h-full rounded-full bg-primary transition-[width] duration-500 ease-out"
+                    style={{ width: `${progress.percent}%` }}
+                  />
+                </div>
               </div>
             )}
 
-            {busy && !status && messages[messages.length - 1]?.content === "" && (
+            {busy && !progress && messages[messages.length - 1]?.content === "" && (
               <p className="flex items-center gap-2 text-sm text-muted">
                 <Loader2 size={14} className="animate-spin text-primary" />
-                Menyusun jawaban…
+                {status ?? "Menghubungi layanan…"}
               </p>
             )}
           </div>

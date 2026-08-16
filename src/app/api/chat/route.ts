@@ -9,6 +9,7 @@ import {
   type UpstreamMessage,
   type UrlAnnotation,
 } from "@/lib/openrouter";
+import { EXPECTED_SEC, startProgress } from "@/lib/progress";
 import { SYSTEM_PROMPT, VISION_HINT } from "@/lib/prompt";
 import { ASPECT_RATIOS, toolsForTurn } from "@/lib/tools";
 import { checkChatQuota, checkImageQuota, clientIp } from "@/lib/ratelimit";
@@ -172,26 +173,12 @@ export async function POST(req: Request) {
             ? (kualitasRaw as "low" | "medium" | "high")
             : "medium";
 
-          send({ type: "status", text: "Menyiapkan gambar…" });
-          // Penyedia tidak melaporkan kemajuan, jadi persen diperkirakan dari
-          // waktu berjalan terhadap durasi tipikal (~8 detik terukur).
-          const EXPECTED_SEC = 10;
-          const startedAt = Date.now();
-          const progressTimer = setInterval(() => {
-            const elapsedSec = Math.round((Date.now() - startedAt) / 1000);
-            const percent = Math.min(
-              95,
-              Math.round(100 * (1 - Math.exp(-elapsedSec / (EXPECTED_SEC / 2)))),
-            );
-            send({
-              type: "progress",
-              progress: {
-                percent,
-                elapsedSec,
-                etaSec: Math.max(0, EXPECTED_SEC - elapsedSec),
-              },
-            });
-          }, 700);
+          send({ type: "status", text: "Membuat gambar…" });
+          const reporter = startProgress(
+            send,
+            "Membuat gambar…",
+            EXPECTED_SEC.gambar,
+          );
           try {
             const result = await generateImage({
               prompt,
@@ -199,19 +186,14 @@ export async function POST(req: Request) {
               quality: kualitas,
               signal: req.signal,
             });
-            clearInterval(progressTimer);
-            const elapsedSec = Math.round((Date.now() - startedAt) / 1000);
-            send({
-              type: "progress",
-              progress: { percent: 100, elapsedSec, etaSec: 0 },
-            });
+            reporter.stop(true);
             send({
               type: "image",
               image: { id: newId(), prompt, dataUrl: result.dataUrl },
             });
             return "Berhasil: gambar sudah dibuat dan sedang ditampilkan ke pengguna lengkap dengan tombol unduh.";
           } catch (err) {
-            clearInterval(progressTimer);
+            reporter.stop();
             const message =
               err instanceof UpstreamError
                 ? err.message
@@ -232,6 +214,12 @@ export async function POST(req: Request) {
           if (!markdown) return "Gagal: isi dokumen kosong.";
 
           send({ type: "status", text: "Menyusun berkas…" });
+          const docReporter = startProgress(
+            send,
+            "Menyusun berkas…",
+            EXPECTED_SEC.berkas,
+          );
+          docReporter.stop(true);
           send({
             type: "document",
             doc: {
@@ -252,6 +240,16 @@ export async function POST(req: Request) {
         const citations = new Map<string, Citation>();
 
         for (let round = 0; round < MAX_TOOL_ROUNDS; round += 1) {
+          // Model menahan jawaban sampai selesai berpikir, jadi pengguna perlu
+          // tahu bahwa permintaannya sedang diproses beserta hitungan detiknya.
+          send({ type: "status", text: "Menyusun jawaban…" });
+          const turnReporter = startProgress(
+            send,
+            "Menyusun jawaban…",
+            EXPECTED_SEC.jawaban,
+          );
+          let textStarted = false;
+
           const upstream = await streamChat({
             model,
             messages,
@@ -293,6 +291,10 @@ export async function POST(req: Request) {
 
             const piece = choice.delta.content;
             if (piece) {
+              if (!textStarted) {
+                textStarted = true;
+                turnReporter.stop(true);
+              }
               text += piece;
               send({ type: "delta", text: piece });
             }
@@ -311,6 +313,12 @@ export async function POST(req: Request) {
             }
             if (fresh) {
               send({ type: "citations", citations: [...citations.values()] });
+              if (!textStarted) {
+                turnReporter.phase(
+                  "Merangkum sumber dari web…",
+                  EXPECTED_SEC.pencarian,
+                );
+              }
             }
 
             for (const partial of choice.delta.tool_calls ?? []) {
@@ -328,6 +336,8 @@ export async function POST(req: Request) {
               calls.set(index, existing);
             }
           }
+
+          turnReporter.stop();
 
           if (!calls.size) break;
 
